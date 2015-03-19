@@ -5,19 +5,23 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/mattrobenolt/size"
 	"github.com/mitchellh/goamz/s3"
 )
 
 var indexTemplate = template.Must(template.New("index").Parse(`<!doctype html>
 <html>
-<head><title>Index of {{ .Path }}</title></head>
+<head>
+<title>Index of {{ .Path }}</title>
+<style type="text/css">table{ font-family: monospace; } td{ padding-right: 25px; }</style>
+</head>
 <body>
 <h1>Index of {{ .Path }}</h1>
 <hr>
-<table style="font-family:monospace;">
+<table>
 {{if not .Root}}<tr><td><a href="../">../</a></td><td></td><td></td></tr>{{end}}
 {{range .Folders}}<tr><td><a href="{{ .Name }}">{{ .Name }}</a></td><td></td><td>-</td></tr>{{end}}
-{{range .Keys}}<tr><td><a href="{{ .Key }}">{{ .Key }}</a></td><td>{{ .LastModified }}</td><td>{{ .Size }}</td></tr>{{end}}
+{{range .Keys}}<tr><td><a href="{{ .Name }}">{{ .Name }}</a></td><td>{{ .LastModified.Format "_2-Jan-2006 15:04" }}</td><td>{{ .Size }}</td></tr>{{end}}
 </table>
 <hr>
 </body>
@@ -28,11 +32,17 @@ type Folder struct {
 	Name string
 }
 
+type Key struct {
+	Name         string
+	LastModified time.Time
+	Size         size.Capacity
+}
+
 type Result struct {
 	Root    bool
 	Path    string
 	Folders []Folder
-	Keys    []s3.Key
+	Keys    []Key
 }
 
 type s3FileServer struct {
@@ -74,7 +84,7 @@ func (f *s3FileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		folders = append(folders, Folder{folder[len(prefix):]})
 	}
 
-	keys := make([]s3.Key, 0)
+	keys := make([]Key, 0)
 	for _, key := range resp.Contents {
 		if key.Key == "" || key.Key == prefix {
 			continue
@@ -82,7 +92,12 @@ func (f *s3FileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		key.Key = key.Key[len(prefix):]
 
-		keys = append(keys, key)
+		lastModified, _ := time.Parse(time.RFC3339, key.LastModified)
+		keys = append(keys, Key{
+			Name:         key.Key,
+			LastModified: lastModified,
+			Size:         size.Capacity(key.Size) * size.Byte,
+		})
 	}
 
 	result := &Result{
