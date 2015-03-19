@@ -63,17 +63,23 @@ func (f *s3FileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// No keys or folders at this path, so 404
 	if len(resp.Contents) == 0 && len(resp.CommonPrefixes) == 0 {
 		http.NotFound(w, r)
 		return
 	}
 
+	// 1 key, no paths, and key matches what we're looking for,
+	// so this must be a file we've requested to download.
+	// Redirect to a signed URL
 	if len(resp.Contents) == 1 && len(resp.CommonPrefixes) == 0 && resp.Contents[0].Key == prefix {
 		url := f.bucket.SignedURL(resp.Contents[0].Key, time.Now().Add(5*time.Minute))
 		http.Redirect(w, r, url, 302)
 		return
 	}
 
+	// No keys, but 1 subdirectory match with a trailing slash.
+	// Append trailing slash and redirect
 	if len(resp.Contents) == 0 && len(resp.CommonPrefixes) == 1 && resp.CommonPrefixes[0] == prefix+"/" {
 		http.Redirect(w, r, path+"/", 302)
 		return
