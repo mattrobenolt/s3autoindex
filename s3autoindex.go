@@ -68,7 +68,7 @@ func (f *s3FileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(resp.Contents) == 1 && len(resp.CommonPrefixes) == 0 {
+	if len(resp.Contents) == 1 && len(resp.CommonPrefixes) == 0 && resp.Contents[0].Key == prefix {
 		url := f.bucket.SignedURL(resp.Contents[0].Key, time.Now().Add(5*time.Minute))
 		http.Redirect(w, r, url, 302)
 		return
