@@ -2,8 +2,8 @@ package s3autoindex
 
 import (
 	"html/template"
-	"io"
 	"net/http"
+	"time"
 
 	"github.com/mitchellh/goamz/s3"
 )
@@ -59,7 +59,8 @@ func (f *s3FileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(resp.Contents) == 1 && len(resp.CommonPrefixes) == 0 {
-		f.DeliverKey(w, resp.Contents[0])
+		url := f.bucket.SignedURL(resp.Contents[0].Key, time.Now().Add(5*time.Minute))
+		http.Redirect(w, r, url, 302)
 		return
 	}
 
@@ -92,15 +93,4 @@ func (f *s3FileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	indexTemplate.Execute(w, result)
-}
-
-func (f *s3FileServer) DeliverKey(w http.ResponseWriter, key s3.Key) {
-	reader, err := f.bucket.GetReader(key.Key)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	defer reader.Close()
-
-	io.Copy(w, reader)
 }
