@@ -96,11 +96,9 @@ func (f *s3FileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		key.Key = key.Key[len(prefix):]
-
 		lastModified, _ := time.Parse(time.RFC3339, key.LastModified)
 		keys = append(keys, Key{
-			Name:         key.Key,
+			Name:         key.Key[len(prefix):],
 			LastModified: lastModified,
 			Size:         size.Capacity(key.Size) * size.Byte,
 		})
