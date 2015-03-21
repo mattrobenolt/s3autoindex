@@ -1,6 +1,8 @@
 GOPATH=$(realpath ../../../../)
 GOBIN=$(GOPATH)/bin
-GO=GOPATH=$(GOPATH) GOBIN=$(GOBIN) go
+GOENV=GOPATH=$(GOPATH) GOBIN=$(GOBIN)
+GO=$(GOENV) go
+GOX=$(GOENV) $(GOBIN)/gox
 APPS=\
 	s3autoindex
 
@@ -28,5 +30,14 @@ test:
 clean:
 	rm -rf $(GOBIN)/*
 	rm -rf $(GOPATH)/pkg/*
+	rm -rf dist/
 
-.PHONY: build run test clean
+gox:
+	$(GO) get github.com/mitchellh/gox
+	@for app in $(APPS); do \
+		echo "$(OK_COLOR)->$(NO_COLOR) Cross-compiling $(BOLD)$${app}$(NO_COLOR)"; \
+		$(GOX) -output="dist/{{.OS}}_{{.Arch}}/{{.Dir}}" ./bin/$${app}; \
+		echo; \
+	done;
+
+.PHONY: build run test clean gox
