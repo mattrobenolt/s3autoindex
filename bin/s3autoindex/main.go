@@ -13,8 +13,8 @@ import (
 
 var (
 	bind      = flag.String("b", ":8000", "bind address")
-	accesskey = flag.String("accesskey", "", "S3 Access Key")
-	secretkey = flag.String("secretkey", "", "S3 Secret Key")
+	accesskey = flag.String("access_key", "", "S3 Access Key")
+	secretkey = flag.String("secret_key", "", "S3 Secret Key")
 	bucket    = flag.String("bucket", "", "S3 bucket")
 )
 
