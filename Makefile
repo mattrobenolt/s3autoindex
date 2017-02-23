@@ -2,27 +2,27 @@ GOPATH=$(realpath ../../../../)
 GOBIN=$(GOPATH)/bin
 GOENV=GOPATH=$(GOPATH) GOBIN=$(GOBIN)
 GO=$(GOENV) go
-GOX=$(GOENV) $(GOBIN)/gox
-APPS=\
-	s3autoindex
+APP=s3autoindex
 
 OK_COLOR=\033[32;01m
 NO_COLOR=\033[0m
 BOLD=\033[1m
 
+CROSSPLATFORMS=\
+	linux/amd64 \
+	darwin/amd64
+
 build:
-	@for app in $(APPS); do \
-		echo "$(OK_COLOR)->$(NO_COLOR) Building $(BOLD)$${app}$(NO_COLOR)"; \
-		echo "$(OK_COLOR)==>$(NO_COLOR) Installing dependencies"; \
-		$(GO) get -v -d ./...; \
-		echo "$(OK_COLOR)==>$(NO_COLOR) Compiling"; \
-		$(GO) install -v ./bin/$${app}; \
-		echo; \
-	done;
+	echo "$(OK_COLOR)->$(NO_COLOR) Building $(BOLD)$(APP)$(NO_COLOR)"
+	echo "$(OK_COLOR)==>$(NO_COLOR) Installing dependencies"
+	$(GO) get -v -d ./...
+	echo "$(OK_COLOR)==>$(NO_COLOR) Compiling"
+	$(GO) install -v ./...
+	echo
 
 run: build
 	@echo "$(OK_COLOR)==>$(NO_COLOR) Running"
-	$(GOBIN)/s3autoindex -b=:8000
+	$(GOBIN)/$(APP) -b=127.0.0.1:8000 -bucket=getsentry-mattstuff
 
 test:
 	$(GO) test -v ./...
@@ -32,12 +32,9 @@ clean:
 	rm -rf $(GOPATH)/pkg/*
 	rm -rf dist/
 
-gox:
-	$(GO) get github.com/mitchellh/gox
-	@for app in $(APPS); do \
-		echo "$(OK_COLOR)->$(NO_COLOR) Cross-compiling $(BOLD)$${app}$(NO_COLOR)"; \
-		$(GOX) -output="dist/{{.OS}}_{{.Arch}}/{{.Dir}}" ./bin/$${app}; \
-		echo; \
-	done;
+docker:
+	docker build --rm -t $(APP):dev -f Dockerfile.build .
+	docker run -it --rm -v $(PWD):/go/src/$(APP) $(APP):dev
+	docker build --rm -t $(APP) .
 
-.PHONY: build run test clean gox
+.PHONY: build run test clean docker

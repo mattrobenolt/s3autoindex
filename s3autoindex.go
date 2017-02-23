@@ -1,4 +1,4 @@
-package s3autoindex
+package main
 
 import (
 	"html/template"
@@ -12,11 +12,11 @@ import (
 var indexTemplate = template.Must(template.New("index").Parse(`<!doctype html>
 <html>
 <head>
-<title>Index of {{ .Path }}</title>
+<title>Index of {{ .Bucket }}{{ .Path }}</title>
 <style type="text/css">table{ font-family: monospace; } td{ padding-right: 25px; }</style>
 </head>
 <body>
-<h1>Index of {{ .Path }}</h1>
+<h1>Index of {{ .Bucket }}{{ .Path }}</h1>
 <hr>
 <table>
 {{if not .Root}}<tr><td><a href="../">../</a></td><td></td><td></td></tr>{{end}}
@@ -43,6 +43,7 @@ type Result struct {
 	Path    string
 	Folders []Folder
 	Keys    []Key
+	Bucket  string
 }
 
 type s3FileServer struct {
@@ -109,6 +110,7 @@ func (f *s3FileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Path:    path,
 		Folders: folders,
 		Keys:    keys,
+		Bucket:  f.bucket.Name,
 	}
 
 	indexTemplate.Execute(w, result)
