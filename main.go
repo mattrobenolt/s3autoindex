@@ -16,6 +16,7 @@ var (
 	access_key = flag.String("access_key", "", "S3 Access Key")
 	secret_key = flag.String("secret_key", "", "S3 Secret Key")
 	bucket     = flag.String("bucket", "", "S3 bucket")
+	proxy      = flag.Bool("proxy", false, "transparent proxy")
 )
 
 func init() {
@@ -49,7 +50,10 @@ func main() {
 		}
 	}
 
-	server := S3FileServer(client.Bucket(*bucket))
+	server := S3FileServer(&S3FileServerConfig{
+		Bucket:           client.Bucket(*bucket),
+		TransparentProxy: *proxy,
+	})
 
 	log.Println("listening on...", *bind)
 	log.Fatal(http.ListenAndServe(*bind, server))

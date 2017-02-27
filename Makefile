@@ -22,7 +22,7 @@ build:
 
 run: build
 	@echo "$(OK_COLOR)==>$(NO_COLOR) Running"
-	$(GOBIN)/$(APP) -b=127.0.0.1:8000 -bucket=getsentry-mattstuff
+	$(GOBIN)/$(APP) -b=127.0.0.1:8000 -bucket=getsentry-mattstuff -proxy
 
 test:
 	$(GO) test -v ./...

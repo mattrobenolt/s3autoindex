@@ -2,6 +2,7 @@ package main
 
 import (
 	"html/template"
+	"io"
 	"net/http"
 	"time"
 
@@ -47,18 +48,23 @@ type Result struct {
 }
 
 type s3FileServer struct {
-	bucket *s3.Bucket
+	config *S3FileServerConfig
 }
 
-func S3FileServer(bucket *s3.Bucket) http.Handler {
-	return &s3FileServer{bucket}
+type S3FileServerConfig struct {
+	Bucket           *s3.Bucket
+	TransparentProxy bool
+}
+
+func S3FileServer(config *S3FileServerConfig) http.Handler {
+	return &s3FileServer{config}
 }
 
 func (f *s3FileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	prefix := path[1:]
 
-	resp, err := f.bucket.List(prefix, "/", "", 0)
+	resp, err := f.config.Bucket.List(prefix, "/", "", 0)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -72,10 +78,26 @@ func (f *s3FileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// 1 key, no paths, and key matches what we're looking for,
 	// so this must be a file we've requested to download.
-	// Redirect to a signed URL
 	if len(resp.Contents) == 1 && len(resp.CommonPrefixes) == 0 && resp.Contents[0].Key == prefix {
-		url := f.bucket.SignedURL(resp.Contents[0].Key, time.Now().Add(5*time.Minute))
-		http.Redirect(w, r, url, 302)
+		key := resp.Contents[0]
+		if f.config.TransparentProxy {
+			httpResponse, err := f.config.Bucket.GetResponse(key.Key)
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			for k, v := range httpResponse.Header {
+				for _, v2 := range v {
+					w.Header().Add(k, v2)
+				}
+			}
+			io.Copy(w, httpResponse.Body)
+			return
+		} else {
+			// Redirect to a signed URL
+			url := f.config.Bucket.SignedURL(key.Key, time.Now().Add(5*time.Minute))
+			http.Redirect(w, r, url, 302)
+		}
 		return
 	}
 
@@ -110,7 +132,7 @@ func (f *s3FileServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Path:    path,
 		Folders: folders,
 		Keys:    keys,
-		Bucket:  f.bucket.Name,
+		Bucket:  f.config.Bucket.Name,
 	}
 
 	indexTemplate.Execute(w, result)
