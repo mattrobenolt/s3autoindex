@@ -33,8 +33,6 @@ clean:
 	rm -rf dist/
 
 docker:
-	docker build --rm -t $(APP):dev -f Dockerfile.build .
-	docker run -it --rm -v $(PWD):/go/src/$(APP) $(APP):dev
 	docker build --rm -t $(APP) .
 
 .PHONY: build run test clean docker

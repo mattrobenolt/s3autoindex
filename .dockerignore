@@ -1,0 +1,6 @@
+Dockerfile
+Makefile
+bin/
+README.md
+.dockerignore
+.git/
