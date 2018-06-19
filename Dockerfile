@@ -1,4 +1,4 @@
-FROM golang:1.8-alpine
+FROM golang:1.10-alpine
 
 RUN apk -U add musl-dev gcc make git curl
 

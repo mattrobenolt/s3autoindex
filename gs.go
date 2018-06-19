@@ -95,6 +95,15 @@ func (f *gsBackend) ServeHTTP(w http.ResponseWriter, r *http.Request) *Result {
 			if err != nil {
 				http.Error(w, err.Error(), 500)
 			} else {
+				if reader.CacheControl() != "" {
+					w.Header().Add("Cache-Control", reader.CacheControl())
+				}
+				if reader.ContentEncoding() != "" {
+					w.Header().Add("Content-Encoding", reader.ContentEncoding())
+				}
+				if reader.ContentType() != "" {
+					w.Header().Add("Content-Type", reader.ContentType())
+				}
 				io.Copy(w, reader)
 			}
 		} else {
