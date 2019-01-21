@@ -69,9 +69,6 @@ func (f *gsBackend) ServeHTTP(w http.ResponseWriter, r *http.Request) *Result {
 			folders = append(folders, Folder{attrs.Prefix[len(prefix):]})
 		} else if attrs.Name != "" && attrs.Prefix == "" {
 			name := attrs.Name[len(prefix):]
-			if name == "" {
-				name = attrs.Name
-			}
 			keys = append(keys, Key{
 				Name:         name,
 				LastModified: attrs.Updated,
@@ -86,11 +83,14 @@ func (f *gsBackend) ServeHTTP(w http.ResponseWriter, r *http.Request) *Result {
 		return nil
 	}
 
-	// 1 key, no paths, and key matches what we're looking for,
-	// so this must be a file we've requested to download.
-	if len(folders) == 0 && len(keys) == 1 && keys[0].Name == prefix {
+	// There exists a key that matches exactly: return as file
+	for _, key := range keys {
+		if key.Name != "" {
+			continue;
+		}
+
+		key.Name = prefix;
 		if f.config.TransparentProxy {
-			key := keys[0]
 			reader, err := f.config.Bucket.Object(key.Name).NewReader(f.config.Context)
 			if err != nil {
 				http.Error(w, err.Error(), 500)
@@ -107,6 +107,12 @@ func (f *gsBackend) ServeHTTP(w http.ResponseWriter, r *http.Request) *Result {
 	// Append trailing slash and redirect
 	if len(keys) == 0 && len(folders) == 1 && folders[0].Name == "/" {
 		http.Redirect(w, r, path+"/", 302)
+		return nil
+	}
+
+	// No trailing slash => must be a file, but there was no exact match, so 404
+	if path[len(path)-1:] != "/" {
+		http.NotFound(w, r)
 		return nil
 	}
 
