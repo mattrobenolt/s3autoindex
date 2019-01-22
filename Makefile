@@ -1,7 +1,5 @@
-GOPATH=$(realpath ../../../../)
+GOPATH?=~/go
 GOBIN=$(GOPATH)/bin
-GOENV=GOPATH=$(GOPATH) GOBIN=$(GOBIN)
-GO=$(GOENV) go
 APP=s3autoindex
 
 OK_COLOR=\033[32;01m
@@ -13,23 +11,21 @@ CROSSPLATFORMS=\
 	darwin/amd64
 
 build:
-	echo "$(OK_COLOR)->$(NO_COLOR) Building $(BOLD)$(APP)$(NO_COLOR)"
-	echo "$(OK_COLOR)==>$(NO_COLOR) Installing dependencies"
-	$(GO) get -v -d ./...
-	echo "$(OK_COLOR)==>$(NO_COLOR) Compiling"
-	$(GO) install -v ./...
-	echo
+	@echo "$(OK_COLOR)->$(NO_COLOR) Building $(BOLD)$(APP)$(NO_COLOR)"
+	@echo "$(OK_COLOR)==>$(NO_COLOR) Installing dependencies"
+	go get -v -d ./...
+	@echo "$(OK_COLOR)==>$(NO_COLOR) Compiling"
+	go install -v ./...
 
 run: build
 	@echo "$(OK_COLOR)==>$(NO_COLOR) Running"
-	$(GOBIN)/$(APP) -b=127.0.0.1:8000 -bucket=gs://getsentry-mattstuff -proxy
+	$(GOBIN)/$(APP) -b=127.0.0.1:8000 -bucket=gs://sentryio-storybook -proxy
 
 test:
-	$(GO) test -v ./...
+	go test -v ./...
 
 clean:
 	rm -rf $(GOBIN)/*
-	rm -rf $(GOPATH)/pkg/*
 	rm -rf dist/
 
 docker:
