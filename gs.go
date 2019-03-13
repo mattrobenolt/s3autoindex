@@ -31,19 +31,29 @@ func GSBackend(config *Config) Backend {
 		key_file = os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
 	}
 	if key_file == "" {
-		log.Fatal("GOOGLE_APPLICATION_CREDENTIALS not found in environment")
+		client, err := storage.NewClient(ctx)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return &gsBackend{&gsFileServerConfig{
+			Context:          ctx,
+			BucketName:       config.bucket[5:],
+			Bucket:           client.Bucket(config.bucket[5:]),
+			TransparentProxy: config.proxy,
+		}}
+	} else {
+		opt := option.WithServiceAccountFile(key_file)
+		client, err := storage.NewClient(ctx, opt)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return &gsBackend{&gsFileServerConfig{
+			Context:          ctx,
+			BucketName:       config.bucket[5:],
+			Bucket:           client.Bucket(config.bucket[5:]),
+			TransparentProxy: config.proxy,
+		}}
 	}
-	opt := option.WithServiceAccountFile(key_file)
-	client, err := storage.NewClient(ctx, opt)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return &gsBackend{&gsFileServerConfig{
-		Context:          ctx,
-		BucketName:       config.bucket[5:],
-		Bucket:           client.Bucket(config.bucket[5:]),
-		TransparentProxy: config.proxy,
-	}}
 }
 
 func (f *gsBackend) ServeHTTP(w http.ResponseWriter, r *http.Request) *Result {
