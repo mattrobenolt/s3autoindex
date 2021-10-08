@@ -30,11 +30,17 @@ func GSBackend(config *Config) Backend {
 	if key_file == "" {
 		key_file = os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
 	}
+
+	var client *storage.Client
+	var err error
 	if key_file == "" {
-		log.Fatal("GOOGLE_APPLICATION_CREDENTIALS not found in environment")
+		log.Print("GOOGLE_APPLICATION_CREDENTIALS not found in environment. Using default credentials.")
+		client, err = storage.NewClient(ctx)
+	} else {
+		opt := option.WithServiceAccountFile(key_file)
+		client, err = storage.NewClient(ctx, opt)
 	}
-	opt := option.WithServiceAccountFile(key_file)
-	client, err := storage.NewClient(ctx, opt)
+
 	if err != nil {
 		log.Fatal(err)
 	}
